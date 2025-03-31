@@ -1,4 +1,4 @@
-export const nullCheck = (checklist) => {
+export const nullCheck = checklist => {
     let coptlist = [...checklist];
     let checksize = coptlist.length;
     console.log(coptlist);
@@ -8,7 +8,12 @@ export const nullCheck = (checklist) => {
         let checkflag = false;
 
         if (typeof item.inval === 'string') {
-            checkflag = item.inval !== '' && item.inval !== null && item.inval !== undefined ? true : false;
+            checkflag =
+                item.inval !== '' &&
+                item.inval !== null &&
+                item.inval !== undefined
+                    ? true
+                    : false;
         } else if (typeof item.inval === 'number') {
             checkflag = item.inval !== 0 ? true : false;
         }

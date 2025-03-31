@@ -5,7 +5,7 @@
     <div class="logo-box">
         <img :src="vue_logo" alt="logoImage" />
         <div class="user-info">
-            <div></div>
+            <div>{{ userInfo.user.loginId }}</div>
             <button @click="handlerLogout">로그아웃</button>
         </div>
     </div>
@@ -14,7 +14,7 @@
             {{ menu.mnu_nm }}
             <div class="child-menu-box" @click="handlerClick(menu.mnu_id, $event)" :id="menu.mnu_id">
                 <template v-for="node in menu.nodeList" :key="node.mnu_id">
-                    <router-link :to="'/vue' + node.mnu_url" class="router-link" replace>
+                    <router-link :to="'/vue' + node.mnu_url" class="router-link">
                         <div
                             class="child-menu-link"
                             :id="node.mnu_id"

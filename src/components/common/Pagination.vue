@@ -8,13 +8,13 @@
 </template>
 
 <script setup>
-import { VueAwesomePaginate } from "vue-awesome-paginate";
+import { VueAwesomePaginate } from 'vue-awesome-paginate';
 const { totalItems, itemsPerPage, maxPagesShown, onClick } = defineProps([
-    "totalItems",
-    "itemsPerPage",
-    "maxPagesShown",
-    "onClick",
-    "cPage"
+    'totalItems',
+    'itemsPerPage',
+    'maxPagesShown',
+    'onClick',
+    'cPage',
 ]);
 </script>
 
