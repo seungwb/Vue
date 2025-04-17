@@ -4,4 +4,11 @@
     <NoticeMain />
 </template>
 
-<script setup></script>
+<script setup>
+import { provide, ref } from 'vue';
+
+const provideValue = ref();
+
+provide('selectValue', provideValue);
+
+</script>

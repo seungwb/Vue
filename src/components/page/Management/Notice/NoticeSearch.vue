@@ -1,6 +1,6 @@
 <script setup>
 import router from '@/router';
-import { onMounted } from 'vue';
+import { inject, onMounted } from 'vue';
 import { useModalStore } from '../../../../stores/modalState';
 
 const modalState = useModalStore();
@@ -8,15 +8,23 @@ const searchTitle = ref('');
 const searchStDate = ref('');
 const searchEdDate = ref('');
 
+const injectedValue = inject('selectValue');
+
 const handlerSearch = () => {
-    const query = [];
+
+    injectedValue.value = {
+        searchTitle: searchTitle.value
+        , searchStDate: searchStDate.value
+        , searchEdDate: searchEdDate.value
+    }
+    /* const query = [];
     !searchTitle.value || query.push(`searchTitle=${searchTitle.value}`);
     !searchStDate.value || query.push(`searchStDate=${searchStDate.value}`);
     !searchEdDate.value || query.push(`searchEdDate=${searchEdDate.value}`);
 
     const quertString = query.length > 0 ? `?${query.join('&')}` : '';
 
-    router.push(quertString);
+    router.push(quertString); */
 
       
 };
@@ -24,9 +32,9 @@ const handlerSearch = () => {
 // 새로고침시 queryParam 없애고 싶다
 // 1. noticeSearch라는 컴포넌트가 열릴 때, url에 queryParam이 남아 있는지를 확인
 // 2. 남아 있는 경우, 경로 (queryParam을 제외한 나머지)로 현재 url을 대체
-onMounted(() => {
+/* onMounted(() => {
     window.location.search && router.replace(window.location.pathname)
-})
+}) */
 </script>
 
 <template>

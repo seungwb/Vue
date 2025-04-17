@@ -1,8 +1,9 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, watchEffect } from 'vue';
 import { useModalStore } from '../../../../stores/modalState';
 import axios from 'axios';
 import { useUserInfo } from '../../../../stores/userInfo';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 
 const { id } = defineProps(['id']);
 const emit = defineEmits(['modalClose', 'postSuccess']);
@@ -12,9 +13,16 @@ const modalState = useModalStore();
 const imageUrl = ref('');
 const fileData = ref('');
 const userInfo = useUserInfo();
+const queryClient = useQueryClient();
 
-const searchDetail = () => {
-    axios.post('/api/management/noticeFileDetailBody.do', { noticeId: id })
+const searchDetail = async () => {
+    const result = await axios.post('/api/management/noticeFileDetailBody.do', { 
+        noticeId: id 
+    });
+
+    return result.data.detailValue;
+
+    /* axios.post('/api/management/noticeFileDetailBody.do', { noticeId: id })
         .then(res => {
             noticeDetail.value = res.data.detailValue;
             if(
@@ -25,8 +33,18 @@ const searchDetail = () => {
                 //db에 있는 파일 데이터를 가지고 썸네일 만들기
                 getFileImage();
             }
-        });
+        }); */
 };
+
+const {
+    data: queryData, 
+    isSuccess
+} = useQuery({
+    queryKey: ['noticeDetail', id],
+    queryFn: searchDetail,
+    staleTime: 1000 * 60 * 5,
+    enabled:!!id,
+});
 
 const getFileImage = () => {
     const param = new URLSearchParams();
@@ -38,6 +56,22 @@ const getFileImage = () => {
         imageUrl.value = url;
     });
 }
+
+
+watchEffect(() => {
+    if(isSuccess && queryData.value){
+        noticeDetail.value = {...queryData.value};
+            if(
+                noticeDetail.value.fileExt === 'jpg' || 
+                noticeDetail.value.fileExt === 'gif' || 
+                noticeDetail.value.fileExt === 'png'
+            ){
+                //db에 있는 파일 데이터를 가지고 썸네일 만들기
+                getFileImage();
+            }
+    }
+})
+
 
 const downloadFile = () => {
     const param = new URLSearchParams();
@@ -67,7 +101,7 @@ const noticeSave = () => {
 
 };
 
-const noticeSaveFile = () => {
+const noticeSaveFile = async () => {
     const textData = {
         fileContent: noticeDetail.value.content,
         fileTitle: noticeDetail.value.title,
@@ -83,28 +117,44 @@ const noticeSaveFile = () => {
         new Blob([JSON.stringify(textData)], { type: 'application/json' })
     );
 
+    return await axios.post('/api/management/noticeSaveFileForm.do', formData);
 
-    axios.post('/api/management/noticeSaveFileForm.do', formData)
+
+/*     axios.post('/api/management/noticeSaveFileForm.do', formData)
         .then(res => {
             if(res.data.result === "success"){
                 emit('postSuccess');
             }
-        });
+        }); */
 
 };
 
-const noticeUpdate = () => {
+const { mutate: saveFile } = useMutation({
+    mutationKey: ['noticeSave'],
+    mutationFn: noticeSaveFile,
+    onSuccess: (result) => {
+        if(result.data.result === "success"){
+            //1. queryKey를 이용한 리스트 재조회
+            modalState.setModalState();
+            queryClient.invalidateQueries({queryKey: ['noticeList']})
+        }
+    }
+})
+
+const noticeUpdate = async() => {
     const param = new URLSearchParams(noticeDetail.value);
     param.append("noticeId", id);
-    axios.post('/api/management/noticeUpdate.do', param)
+    /* axios.post('/api/management/noticeUpdate.do', param)
     .then(res => {
             if(res.data.result === "success"){
                 emit('postSuccess');
             }
-        })
+        }) */
+
+    return await axios.post('/api/management/noticeUpdate.do', param);
 }
 
-const noticeUpdateFile = () => {
+const noticeUpdateFile = async () => {
     const textData = {
         fileContent: noticeDetail.value.content,
         fileTitle: noticeDetail.value.title,
@@ -120,24 +170,59 @@ const noticeUpdateFile = () => {
         new Blob([JSON.stringify(textData)], { type: 'application/json' })
     );
 
+    return await axios.post('/api/management/noticeUpdateFileForm.do', formData);
 
-    axios.post('/api/management/noticeUpdateFileForm.do', formData)
+   /*  axios.post('/api/management/noticeUpdateFileForm.do', formData)
         .then(res => {
             if(res.data.result === "success"){
                 emit('postSuccess');
             }
-        });
+        }); */
 
 };
 
-const noticeDelete = () => {
-    axios.post('/api/management/noticeFileDeleteJson.do', {noticeId: id})
+const { mutate: updateFile } = useMutation({
+    mutationKey: ['noticeUpdate'],
+    mutationFn: noticeUpdateFile,
+    onSuccess: (result) => {
+        if(result.data.result === "success"){
+            //1. queryKey를 이용한 리스트 재조회
+            modalState.setModalState();
+            queryClient.invalidateQueries({queryKey: ['noticeList']});
+
+            //exact -> queryKey가 noticeDetail이고 id가 정확히 같은 것의 캐시를 무효화
+            queryClient.invalidateQueries({
+                queryKey: ['noticeDetail', id], 
+                exact: true,
+
+            });
+        }
+    }
+})
+
+const noticeDelete = async() => {
+    return await axios.post('/api/management/noticeFileDeleteJson.do', {noticeId: id});
+
+  /*   axios.post('/api/management/noticeFileDeleteJson.do', {noticeId: id})
         .then(res => {
             if(res.data.result === "success"){
                 emit('postSuccess');
             }
-        })
-}
+        }); */
+};
+
+const { mutate:deleteFile} = useMutation({
+    mutationKey: ['noticeDelete'],
+    mutationFn: noticeDelete,
+    onSuccess: (result) => {
+        if(result.data.result === "success"){
+            //1. queryKey를 이용한 리스트 재조회
+            modalState.setModalState();
+            queryClient.invalidateQueries({queryKey: ['noticeList']});
+
+        }
+    }
+})
 
 const handlerFile = e => {
     const fileInfo = e.target.files;
@@ -150,9 +235,9 @@ const handlerFile = e => {
     fileData.value = fileInfo[0];
 }
 
-onMounted(() => {
+/* onMounted(() => {
     id && searchDetail();
-});
+}); */
 
 onUnmounted(() => {
     emit('modalClose', 0);
@@ -182,10 +267,10 @@ onUnmounted(() => {
                     </div>
                 </div>
                 <div class="button-box">
-                    <button @click="id ? noticeUpdateFile() : noticeSaveFile()">
+                    <button @click="id ? updateFile() : saveFile()">
                         {{ id ? '수정' : '저장'}}</button>
                     <button v-if="id"
-                    @click="noticeDelete"
+                    @click="deleteFile"
                         >삭제</button>
                     <button @click="modalState.setModalState()">나가기</button>
                 </div>
